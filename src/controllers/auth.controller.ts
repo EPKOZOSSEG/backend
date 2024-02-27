@@ -29,9 +29,9 @@ export default class AuthController implements Controller {
             this.registerCompany(req, res);
         })
 
-        this.router.put("/password", hasPermission(["user"]), (req, res, next) => {
-            this.password(req, res).catch(next);
-        });
+        // this.router.put("/password", hasPermission(["user"]), (req, res, next) => {
+        //     this.password(req, res).catch(next);
+        // });
     }
 
     private loginUser = async (req: Request, res: Response) => {
@@ -104,23 +104,23 @@ export default class AuthController implements Controller {
         res.send({ message: "OK" });
     }
 
-    private password = async (req: Request, res: Response) => {
-        const body = req.body;
-        const id = await getIDfromToken(req);
-        const user = await this.user.findOne({ _id: id });
-        if (user) {
-            const result = await bcrypt.compare(body.oldpassword, user.password);
-            if (result && !user.isDeleted) {
-                user.password = await bcrypt.hash(body.newpassword, 10);
-                await this.user.replaceOne({ _id: id }, user, { runValidators: true });
-                res.send({ message: "OK" });
-            } else {
-                res.status(401).send({ message: "Hibás jelszó!" });
-            }
-        } else {
-            res.status(404).send({ message: "Hibás felhasználónév!" });
-        }
-    };
+    // private password = async (req: Request, res: Response) => {
+    //     const body = req.body;
+    //     const id = await getIDfromToken(req);
+    //     const user = await this.user.findOne({ _id: id });
+    //     if (user) {
+    //         const result = await bcrypt.compare(body.oldpassword, user.password);
+    //         if (result && !user.isDeleted) {
+    //             user.password = await bcrypt.hash(body.newpassword, 10);
+    //             await this.user.replaceOne({ _id: id }, user, { runValidators: true });
+    //             res.send({ message: "OK" });
+    //         } else {
+    //             res.status(401).send({ message: "Hibás jelszó!" });
+    //         }
+    //     } else {
+    //         res.status(404).send({ message: "Hibás felhasználónév!" });
+    //     }
+    // };
 
 
 
