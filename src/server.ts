@@ -1,6 +1,4 @@
 import App from "./app";
-import PlaceController from "./controllers/place.controller";
+import CargoController from "./controllers/cargo.conteroller";
 
-import UserController from "./controllers/user.controller";
-
-new App([new UserController(), new PlaceController(),]);  
+new App([new CargoController()]);  
