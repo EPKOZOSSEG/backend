@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import { getIDfromToken, hasPermission } from "../middleware/middleware";
 import authModel from "../models/auth.model";
 import { AuthServices } from "../services/auth.services";
+import { Roles } from "../auth/auth.roles";
 
 const { ACCESS_TOKEN_SECRET = "secret" } = process.env;
 
@@ -36,27 +37,27 @@ export default class AuthController implements Controller {
             res.send({ message: "OK" });
         });
 
-        this.router.post("/auths/new", hasPermission(['']), (req, res) => {
+        this.router.post("/auths/new", hasPermission([Roles.AuthAdd]), (req, res) => {
             this.newAuthGroup(req, res);
         });
 
-        this.router.get("/auths", hasPermission(['']), (req, res) => {
+        this.router.get("/auths", hasPermission([Roles.AuthView]), (req, res) => {
             this.getAuthGroups(req, res);
         });
 
-        this.router.put("/auths/modify/:id", hasPermission(['']), (req, res) => {
+        this.router.put("/auths/modify/:id", hasPermission([Roles.AuthEdit]), (req, res) => {
             this.modifyAuth(req, res);
         });
 
-        this.router.delete("/auths/delete/:id", hasPermission(['']), (req, res) => {
+        this.router.delete("/auths/delete/:id", hasPermission([Roles.AuthDelete]), (req, res) => {
             this.deletingAuth(req, res);
         });
 
-        this.router.post("/set-auth/:id", hasPermission(['']), (req, res) => {
+        this.router.post("/set-auth/:id", hasPermission([Roles.RoleSet]), (req, res) => {
             this.setAuth(req, res);
         });
 
-        this.router.delete("/delete-auth/:id", hasPermission(['']), (req, res) => {
+        this.router.delete("/delete-auth/:id", hasPermission([Roles.RoleDelete]), (req, res) => {
             this.deleteAuth(req, res);
         });
 

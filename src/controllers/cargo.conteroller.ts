@@ -3,31 +3,32 @@ import Controller from "../interfaces/controller_interface";
 import { getIDfromToken, hasPermission, isLoggedIn } from "../middleware/middleware";
 import cargosModel from "../models/cargos.model";
 import { CargoService } from "../services/cargo.services";
+import { Roles } from "../auth/auth.roles";
 
 export default class CargoController implements Controller {
     public router = Router();
     public cargos = cargosModel.cargoModel;
 
     constructor() {
-        this.router.get("/cargos", hasPermission(['']), (req, res, next) => {
+        this.router.get("/cargos", hasPermission([Roles.CargoView]), (req, res, next) => {
             this.getCargos(req, res).catch(next);
         });
-        this.router.get("/cargo", hasPermission(['']), (req, res, next) => {
+        this.router.get("/cargo", hasPermission([Roles.CargoView]), (req, res, next) => {
             this.getCargosWithPag(req, res).catch(next);
         });
-        this.router.get("/cargo/:id", hasPermission(['']), (req, res, next) => {
+        this.router.get("/cargo/:id", hasPermission([Roles.CargoView]), (req, res, next) => {
             this.getOneCargo(req, res).catch(next);
         });
 
-        this.router.post("/cargo", hasPermission(['']), (req, res, next) => {
+        this.router.post("/cargo", hasPermission([Roles.CargoAdd]), (req, res, next) => {
             this.createCargo(req, res).catch(next);
         });
 
-        this.router.put("/cargo/:id", hasPermission(['']), (req, res, next) => {
+        this.router.put("/cargo/:id", hasPermission([Roles.CargoEdit]), (req, res, next) => {
             this.updateCargo(req, res).catch(next);
         });
 
-        this.router.delete("/cargo/:id", hasPermission(['']), (req, res, next) => {
+        this.router.delete("/cargo/:id", hasPermission([Roles.CargoDelete]), (req, res, next) => {
             this.deleteCargo(req, res).catch(next);
         });
 
@@ -107,10 +108,10 @@ export default class CargoController implements Controller {
             }
 
             const data = await this.cargos.findOne({ _id: id });
-            
+
             if (data) {
                 const id = await getIDfromToken(req);
-                if(id !== data.company_id) {
+                if (id !== data.company_id) {
                     res.status(403).json({ error: "Access denied" });
                     return;
                 }
@@ -130,7 +131,7 @@ export default class CargoController implements Controller {
             const data = await this.cargos.findOne({ _id: id });
             if (data) {
                 const id = await getIDfromToken(req);
-                if(id !== data.company_id) {
+                if (id !== data.company_id) {
                     res.status(403).json({ error: "Access denied" });
                     return;
                 }
