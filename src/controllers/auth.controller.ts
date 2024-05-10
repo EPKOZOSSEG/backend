@@ -19,6 +19,11 @@ export default class AuthController implements Controller {
     public auth = authModel.authModel;
 
     constructor() {
+
+        this.router.post("/login", (req, res, next) => {
+            this.Login(req, res).catch(next);
+        });
+
         this.router.post("/login-user", (req, res, next) => {
             this.loginUser(req, res).catch(next);
         });
@@ -70,6 +75,19 @@ export default class AuthController implements Controller {
         // });
     }
 
+    private Login = async (req: Request, res: Response) => {
+        const body = req.body;
+        const user = await this.user.findOne({ email: body.email });
+        if(user){
+            this.loginUser(req, res);
+        }
+        const company = await this.company.findOne({ email: body.email });
+        if(company){
+            this.loginCompany(req, res);
+        }
+        res.status(404).send({ message: "Wrong username or password!!" });
+    };
+
     private loginUser = async (req: Request, res: Response) => {
         const body = req.body;
 
@@ -77,8 +95,8 @@ export default class AuthController implements Controller {
         if (user) {
             const result = await bcrypt.compare(body.password, user.password);
             if (result && !user.isDeleted) {
-                const token = jwt.sign({ id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, isSubscribed: user.isSubscribed, auth: user.auth }, ACCESS_TOKEN_SECRET);
-                res.send({ token: token });
+                const token = jwt.sign({ firstName: user.firstName, lastName: user.lastName, email: user.email, isSubscribed: user.isSubscribed }, ACCESS_TOKEN_SECRET);
+                res.send({ token: token, type: 'user' });
             } else {
                 res.status(401).send({ message: "Wrong password!" });
             }
@@ -94,8 +112,8 @@ export default class AuthController implements Controller {
         if (company) {
             const result = await bcrypt.compare(body.password, company.password);
             if (result && !company.isDeleted) {
-                const token = jwt.sign({ id: company.id, companyName: company.companyName, email: company.email, isSubscribed: company.isSubscribed, auth: company.auth }, ACCESS_TOKEN_SECRET);
-                res.send({ token: token });
+                const token = jwt.sign({ companyName: company.companyName, email: company.email, isSubscribed: company.isSubscribed }, ACCESS_TOKEN_SECRET);
+                res.send({ token: token, type: 'company' });
             } else {
                 res.status(401).send({ message: "Wrong password!" });
             }
@@ -118,6 +136,8 @@ export default class AuthController implements Controller {
         }
         body.password = await bcrypt.hash(body.password, 10);
         body["_id"] = new mongoose.Types.ObjectId();
+        body["isDeleted"] = false;
+        
         const newUser = new this.user(body);
         await newUser.save();
         res.send({ message: "OK" });
