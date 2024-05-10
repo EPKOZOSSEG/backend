@@ -17,6 +17,11 @@ export enum Roles {
     ItemView = "item-view",
     ItemAdd = "item-add",
     ItemEdit = "item-edit",
-    ItemDelete = "item-delete"
+    ItemDelete = "item-delete",
+
+    JobView = "job-view",
+    JobAdd = "job-add",
+    JobEdit = "job-edit",
+    JobDelete = "job-delete",
     
 }
