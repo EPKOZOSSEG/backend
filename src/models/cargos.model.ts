@@ -8,6 +8,11 @@ const cargoSchema = new Schema(
             type: Schema.Types.ObjectId,
             readonly: true
         },
+        company_id: {
+            type: Schema.Types.ObjectId,
+            required: true,
+            readonly: true
+        },
         name:{
             type: String,
             required: true

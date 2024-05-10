@@ -16,6 +16,7 @@ export class CargoService {
         if (payment) filter.payment = payment;
         if (location) filter.location = location;
 
+
         return { filter, limit, offset };
     }
 }

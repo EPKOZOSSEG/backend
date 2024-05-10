@@ -16,6 +16,14 @@ const cargoSchema = new Schema(
             type: String,
             required: true
         },
+        status: {
+            type: String,
+            required: true
+        },
+        message: {
+            type: String,
+            required: true
+        },
         date:{
             type: Date,
             required: true

@@ -23,10 +23,12 @@ export default class App {
         dotenv.config();
 
         const server = http.createServer(this.app);
-
-
+        
         this.app.use((req, res, next) => {
-            // new LogController().createLog(req.method, req.path).catch(next);
+            res.on('finish', () => {
+                console.log(`Response Status: ${req.method} ${req.path} : ${res.statusCode} - ${res.statusMessage}`);
+                // new LogController().createLog(req.method, req.path, res.statusCode, res.statusMessage).catch(next);
+            });
             next();
         });
 

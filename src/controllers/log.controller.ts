@@ -33,21 +33,18 @@ export default class LogController {
     };
 
 
-    public createLog = async (method: string, path: string) => {
+    public createLog = async (method: string, path: string, status: string, message: string) => {
         try {
             
-            console.log(`Request received: ${method} ${path}`);
-
-            
             const createdDocument = new this.logModel({
+                _id: new mongoose.Types.ObjectId(),
                 path: path,
                 method: method,
+                status: status,
+                message: message,
                 date: new Date()
             });
-            createdDocument["_id"] = new mongoose.Types.ObjectId();
             
-            
-            console.log("Log created");
             await createdDocument.save();
         } catch (error: any) {
             // res.status(400).send({ message: error.message });

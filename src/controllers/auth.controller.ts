@@ -5,7 +5,9 @@ import companyModel from "../models/company.model"
 import mongoose from "mongoose";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { hasPermission, getIDfromToken } from "../middleware/middleware";
+import { getIDfromToken, hasPermission } from "../middleware/middleware";
+import authModel from "../models/auth.model";
+import { AuthServices } from "../services/auth.services";
 
 const { ACCESS_TOKEN_SECRET = "secret" } = process.env;
 
@@ -13,6 +15,7 @@ export default class AuthController implements Controller {
     public router = Router();
     public user = userModel.userModel;
     public company = companyModel.companyModel;
+    public auth = authModel.authModel;
 
     constructor() {
         this.router.post("/login-user", (req, res, next) => {
@@ -27,7 +30,39 @@ export default class AuthController implements Controller {
         });
         this.router.post("/register-company", async (req, res) => {
             this.registerCompany(req, res);
-        })
+        });
+
+        this.router.post("/logout", (req, res) => {
+            res.send({ message: "OK" });
+        });
+
+        this.router.post("/auths/new", hasPermission(['']), (req, res) => {
+            this.newAuthGroup(req, res);
+        });
+
+        this.router.get("/auths", hasPermission(['']), (req, res) => {
+            this.getAuthGroups(req, res);
+        });
+
+        this.router.put("/auths/modify/:id", hasPermission(['']), (req, res) => {
+            this.modifyAuth(req, res);
+        });
+
+        this.router.delete("/auths/delete/:id", hasPermission(['']), (req, res) => {
+            this.deletingAuth(req, res);
+        });
+
+        this.router.post("/set-auth/:id", hasPermission(['']), (req, res) => {
+            this.setAuth(req, res);
+        });
+
+        this.router.delete("/delete-auth/:id", hasPermission(['']), (req, res) => {
+            this.deleteAuth(req, res);
+        });
+
+
+
+
 
         // this.router.put("/password", hasPermission(["user"]), (req, res, next) => {
         //     this.password(req, res).catch(next);
@@ -36,35 +71,35 @@ export default class AuthController implements Controller {
 
     private loginUser = async (req: Request, res: Response) => {
         const body = req.body;
-        
+
         const user = await this.user.findOne({ email: body.email });
         if (user) {
             const result = await bcrypt.compare(body.password, user.password);
             if (result && !user.isDeleted) {
                 const token = jwt.sign({ id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, isSubscribed: user.isSubscribed, auth: user.auth }, ACCESS_TOKEN_SECRET);
-                res.send({ token: token  });
+                res.send({ token: token });
             } else {
-                res.status(401).send({ message: "Hibás jelszó!" });
+                res.status(401).send({ message: "Wrong password!" });
             }
         } else {
-            res.status(404).send({ message: "Hibás felhasználónév!" });
+            res.status(404).send({ message: "Wrong username or password!!" });
         }
     };
 
     private loginCompany = async (req: Request, res: Response) => {
         const body = req.body;
-        
+
         const company = await this.company.findOne({ email: body.email });
         if (company) {
             const result = await bcrypt.compare(body.password, company.password);
             if (result && !company.isDeleted) {
                 const token = jwt.sign({ id: company.id, companyName: company.companyName, email: company.email, isSubscribed: company.isSubscribed, auth: company.auth }, ACCESS_TOKEN_SECRET);
-                res.send({ token: token  });
+                res.send({ token: token });
             } else {
-                res.status(401).send({ message: "Hibás jelszó!" });
+                res.status(401).send({ message: "Wrong password!" });
             }
         } else {
-            res.status(404).send({ message: "Hibás felhasználónév!" });
+            res.status(404).send({ message: "Wrong username or password!!" });
         }
     };
 
@@ -77,10 +112,11 @@ export default class AuthController implements Controller {
         }
         const user = await this.user.findOne({ email: body.email });
         if (user) {
-            res.status(409).send({ message: "Ez az email cím már foglalt!" });
+            res.status(409).send({ message: "Choose a different email address!" });
             return;
         }
         body.password = await bcrypt.hash(body.password, 10);
+        body["_id"] = new mongoose.Types.ObjectId();
         const newUser = new this.user(body);
         await newUser.save();
         res.send({ message: "OK" });
@@ -95,10 +131,11 @@ export default class AuthController implements Controller {
         }
         const company = await this.company.findOne({ email: body.email });
         if (company) {
-            res.status(409).send({ message: "Ez az email cím már foglalt!" });
+            res.status(409).send({ message: "Choose a different email address!" });
             return;
         }
         body.password = await bcrypt.hash(body.password, 10);
+        body["_id"] = new mongoose.Types.ObjectId();
         const newCompany = new this.company(body);
         await newCompany.save();
         res.send({ message: "OK" });
@@ -115,13 +152,114 @@ export default class AuthController implements Controller {
     //             await this.user.replaceOne({ _id: id }, user, { runValidators: true });
     //             res.send({ message: "OK" });
     //         } else {
-    //             res.status(401).send({ message: "Hibás jelszó!" });
+    //             res.status(401).send({ message: "Wrong password!" });
     //         }
     //     } else {
-    //         res.status(404).send({ message: "Hibás felhasználónév!" });
+    //         res.status(404).send({ message: "Wrong username or password!!" });
     //     }
     // };
 
+    public getAllAuths = async (req: Request, res: Response) => {
+        try {
+            const data = await this.auth.find();
+            if (data.length > 0) {
+                return data;
+            } else {
+                return { message: `Auth groups not found!` };
+            }
+        } catch (error: any) {
+            return { message: error.message };
+        }
+    };
 
+    private newAuthGroup = async (req: Request, res: Response) => {
+        const body = req.body;
+        const { error } = authModel.validate(body);
+        if (error) {
+            res.status(400).send({ message: error.details[0].message });
+            return;
+        }
 
+        body["_id"] = new mongoose.Types.ObjectId();
+        const newAuth = new this.auth(body);
+        await newAuth.save();
+        res.send({ message: "OK" });
+    };
+
+    private getAuthGroups = async (req: Request, res: Response) => {
+        try {
+            let data: any[] = [];
+            const { filter, limit, offset } = AuthServices.parseQueryParameters(req.query);
+            data = await this.auth.find(filter).limit(limit).skip(offset);
+
+            if (data.length > 0) {
+                res.send(data);
+            } else {
+                res.status(404).send({ message: `Auth groups not found!` });
+            }
+        } catch (error: any) {
+            res.status(400).send({ message: error.message });
+        }
+    };
+
+    private setAuth = async (req: Request, res: Response) => {
+        const body = req.body;
+        const { id } = req.params;
+        const user = await this.user.findOne({ _id: id });
+        if (user) {
+            user.auth = body.auths;
+            await this.user.replaceOne({ _id: id }, user, { runValidators: true });
+            res.send({ message: "OK" });
+        }
+        const company = await this.company.findOne({ _id: id });
+        if (company) {
+            company.auth = body.auths;
+            await this.company.replaceOne({ _id: id }, company, { runValidators: true });
+            res.send({ message: "OK" });
+        }
+        res.status(404).send({ message: "Auth group not added!" });
+    };
+
+    private deleteAuth = async (req: Request, res: Response) => {
+        const body: any = req.body;
+        const { id } = req.params;
+        const user = await this.user.findOne({ _id: id });
+        if (user) {
+            const authArray: any[] = user.auth;
+            user.auth = authArray.filter((auth: string) => !body.auth.includes(auth));
+            await this.user.replaceOne({ _id: id }, user, { runValidators: true });
+            res.send({ message: "OK" });
+        }
+        const company = await this.company.findOne({ _id: id });
+        if (company) {
+            const authArray: any[] = company.auth;
+            company.auth = authArray.filter((auth: string) => !body.auth.includes(auth));
+            await this.company.replaceOne({ _id: id }, company, { runValidators: true });
+            res.send({ message: "OK" });
+        }
+        res.status(404).send({ message: "Auth group not added!" });
+    };
+
+    private modifyAuth = async (req: Request, res: Response) => {
+        const body = req.body;
+        const { id } = req.params;
+        const auth = await this.auth.findOne({ _id: id });
+        if (auth) {
+            auth.auths = body.auths;
+            await this.auth.replaceOne({ _id: id }, auth, { runValidators: true });
+            res.send({ message: "OK" });
+        }
+        res.status(404).send({ message: "Auth group not found!" });
+    };
+
+    private deletingAuth = async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const auth = await this.auth.findOne({ _id: id });
+        if (auth) {
+            await this.auth.deleteOne({ _id: id });
+            res.send({ message: "OK" });
+        } else {
+            res.status(404).send({ message: "Auth group not found!" });
+        }
+    };
 }

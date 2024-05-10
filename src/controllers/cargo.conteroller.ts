@@ -1,6 +1,6 @@
 import { Request, Response, Router } from "express";
 import Controller from "../interfaces/controller_interface";
-import { isLoggedIn } from "../middleware/middleware";
+import { getIDfromToken, hasPermission, isLoggedIn } from "../middleware/middleware";
 import cargosModel from "../models/cargos.model";
 import { CargoService } from "../services/cargo.services";
 
@@ -9,25 +9,25 @@ export default class CargoController implements Controller {
     public cargos = cargosModel.cargoModel;
 
     constructor() {
-        this.router.get("/cargos", isLoggedIn, (req, res, next) => {
+        this.router.get("/cargos", hasPermission(['']), (req, res, next) => {
             this.getCargos(req, res).catch(next);
         });
-        this.router.get("/cargo", isLoggedIn, (req, res, next) => {
+        this.router.get("/cargo", hasPermission(['']), (req, res, next) => {
             this.getCargosWithPag(req, res).catch(next);
         });
-        this.router.get("/cargo/:id", isLoggedIn, (req, res, next) => {
+        this.router.get("/cargo/:id", hasPermission(['']), (req, res, next) => {
             this.getOneCargo(req, res).catch(next);
         });
 
-        this.router.post("/cargo", isLoggedIn, (req, res, next) => {
+        this.router.post("/cargo", hasPermission(['']), (req, res, next) => {
             this.createCargo(req, res).catch(next);
         });
 
-        this.router.put("/cargo/:id", isLoggedIn, (req, res, next) => {
+        this.router.put("/cargo/:id", hasPermission(['']), (req, res, next) => {
             this.updateCargo(req, res).catch(next);
         });
 
-        this.router.delete("/cargo/:id", isLoggedIn, (req, res, next) => {
+        this.router.delete("/cargo/:id", hasPermission(['']), (req, res, next) => {
             this.deleteCargo(req, res).catch(next);
         });
 
@@ -87,7 +87,7 @@ export default class CargoController implements Controller {
                 res.status(400).send({ message: error.details[0].message });
                 return;
             }
-
+            body["company_id"] = await getIDfromToken(req);
             const newCargo = new this.cargos(body);
             await newCargo.save();
             res.send(newCargo);
@@ -107,7 +107,13 @@ export default class CargoController implements Controller {
             }
 
             const data = await this.cargos.findOne({ _id: id });
+            
             if (data) {
+                const id = await getIDfromToken(req);
+                if(id !== data.company_id) {
+                    res.status(403).json({ error: "Access denied" });
+                    return;
+                }
                 await this.cargos.updateOne({ _id: id }, body);
                 res.send({ message: "Cargo updated successfully" });
             } else {
@@ -123,6 +129,11 @@ export default class CargoController implements Controller {
             const { id } = req.params;
             const data = await this.cargos.findOne({ _id: id });
             if (data) {
+                const id = await getIDfromToken(req);
+                if(id !== data.company_id) {
+                    res.status(403).json({ error: "Access denied" });
+                    return;
+                }
                 await this.cargos.updateOne({ _id: id }, { isDeleted: true });
                 res.send({ message: "Cargo deleted successfully" });
             } else {
