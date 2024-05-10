@@ -23,5 +23,16 @@ export enum Roles {
     JobAdd = "job-add",
     JobEdit = "job-edit",
     JobDelete = "job-delete",
+
+    UserView = "user-view",
+    UserAdd = "user-add",
+    UserEdit = "user-edit",
+    UserDelete = "user-delete",
+
+    CouponView = "coupon-view",
+    CouponAdd = "coupon-add",
+    CouponEdit = "coupon-edit",
+    CouponDelete = "coupon-delete",
+    CouponUse = "coupon-use",
     
 }
