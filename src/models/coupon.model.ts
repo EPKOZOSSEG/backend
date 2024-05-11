@@ -10,7 +10,6 @@ const couponSchema = new Schema(
         },
         company_id: {
             type: Schema.Types.ObjectId,
-            required: true,
             readonly: true
         },
         title:{

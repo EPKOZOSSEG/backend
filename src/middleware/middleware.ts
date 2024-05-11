@@ -28,8 +28,8 @@ async function isLoggedIn(req: any, res: any, next: any, auth?: Array<string>) {
         } else {
             res.status(400).json({ error: "No authorization header" });
         }
-    } catch (error) {
-        res.status(400).json({ error });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
     }
 }
 

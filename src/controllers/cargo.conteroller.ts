@@ -4,6 +4,7 @@ import { getIDfromToken, hasPermission, isLoggedIn } from "../middleware/middlew
 import cargosModel from "../models/cargos.model";
 import { CargoService } from "../services/cargo.services";
 import { Roles } from "../auth/auth.roles";
+import mongoose from "mongoose";
 
 export default class CargoController implements Controller {
     public router = Router();
@@ -38,6 +39,7 @@ export default class CargoController implements Controller {
         try {
             let data: any[] = [];
             data = await this.cargos.find();
+
 
             if (data.length > 0) {
                 res.send(data);
@@ -83,11 +85,14 @@ export default class CargoController implements Controller {
     private createCargo = async (req: Request, res: Response) => {
         try {
             const body = req.body;
+            console.log(req);
             const { error } = cargosModel.validate(body);
             if (error) {
                 res.status(400).send({ message: error.details[0].message });
                 return;
             }
+            body["_id"] = new mongoose.Types.ObjectId();
+            body["isDeleted"] = false;
             body["company_id"] = await getIDfromToken(req);
             const newCargo = new this.cargos(body);
             await newCargo.save();
