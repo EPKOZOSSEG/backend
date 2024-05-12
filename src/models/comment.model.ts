@@ -32,6 +32,10 @@ const commentSchema = new Schema(
             type: Number,
             default: 0
         },
+        replys: {
+            type: Number,
+            default: 0
+        },
         isDeleted: {
             type: Boolean,
             default: false

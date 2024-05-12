@@ -1,17 +1,20 @@
 export class CommentService {
     static parseQueryParameters(query: any) {
-        const title = query.title as string;
-        const percent = query.percent as string;
-        const type = query.type as string;
+
+        const reference_id = query.reference_id as string;
+        const firstName = query.firstName as string;
+        const lastName = query.lastName as string;
+        const comment = query.comment as string;
+        
 
         const limit = parseInt(query.limit as string);
         const offset = parseInt(query.offset as string);
 
         const filter: any = {};
-        if (title) filter.title = new RegExp(".*" + title + ".*");
-        if (percent) filter.percent = percent;
-        if (type) filter.type = type;
-
+        if (reference_id) filter.reference_id = reference_id;
+        if (firstName) filter.firstName = firstName;
+        if (lastName) filter.lastName = lastName;
+        if (comment) filter.comment = new RegExp(".*" + comment + ".*");
 
         return { filter, limit, offset };
     }

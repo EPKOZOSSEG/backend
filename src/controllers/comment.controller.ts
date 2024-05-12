@@ -91,6 +91,11 @@ export default class CommentController implements Controller {
             }
             body["_id"] = new mongoose.Types.ObjectId();
             const newComment = new this.comments(body);
+
+            const data = await this.comments.findOne({ _id: body.refernce_id });
+            if(data){
+                await this.comments.updateOne({ _id: body.refernce_id }, { $inc: { replys: data.replys+1 } });
+            }
             await newComment.save();
             res.send(newComment);
         } catch (error: any) {
