@@ -6,6 +6,7 @@ import http from 'http';
 import dotenv from 'dotenv';
 import AuthController from "./controllers/auth.controller";
 import LogController from "./controllers/log.controller";
+import { getIDfromToken } from "./middleware/middleware";
 
 
 
@@ -26,7 +27,7 @@ export default class App {
         
         this.app.use((req, res, next) => {
             res.on('finish', () => {
-                console.log(`Response Status: ${req.method} ${req.path} : ${res.statusCode} - ${res.statusMessage}`);
+                console.log(`Response Status: ${req.method} ${req.path} : ${res.statusCode} - ${res.statusMessage}`);  
                 // new LogController().createLog(req.method, req.path, res.statusCode, res.statusMessage).catch(next);
             });
             next();

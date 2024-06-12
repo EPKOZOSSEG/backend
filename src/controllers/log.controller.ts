@@ -33,7 +33,7 @@ export default class LogController {
     };
 
 
-    public createLog = async (method: string, path: string, status: string, message: string) => {
+    public createLog = async (method: string, path: string, status: number, message: string) => {
         try {
             
             const createdDocument = new this.logModel({

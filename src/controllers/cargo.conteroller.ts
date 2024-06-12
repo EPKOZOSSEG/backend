@@ -5,10 +5,21 @@ import cargosModel from "../models/cargos.model";
 import { CargoService } from "../services/cargo.services";
 import { Roles } from "../auth/auth.roles";
 import mongoose from "mongoose";
+import multer from "multer";
 
 export default class CargoController implements Controller {
     public router = Router();
     public cargos = cargosModel.cargoModel;
+    public upload = multer({ dest: ".images/cargos/" });
+
+    public storage = multer.diskStorage({
+        destination: function (req, file, cb) {
+            cb(null, '.images/cargos/');
+        },
+        filename: function (req, file, cb) {
+            cb(null, `${Date.now()}-${file.originalname}`);
+        }
+    });
 
     constructor() {
         this.router.get("/cargos", hasPermission([Roles.CargoView]), (req, res, next) => {
@@ -21,7 +32,7 @@ export default class CargoController implements Controller {
             this.getOneCargo(req, res).catch(next);
         });
 
-        this.router.post("/cargo", hasPermission([Roles.CargoAdd]), (req, res, next) => {
+        this.router.post("/cargo", hasPermission([Roles.CargoAdd]), this.upload.single('image'), (req, res, next) => {
             this.createCargo(req, res).catch(next);
         });
 
@@ -94,6 +105,7 @@ export default class CargoController implements Controller {
             body["_id"] = new mongoose.Types.ObjectId();
             body["isDeleted"] = false;
             body["company_id"] = await getIDfromToken(req);
+            this.upload.array("pictures", 10);
             const newCargo = new this.cargos(body);
             await newCargo.save();
             res.send(newCargo);
