@@ -6,20 +6,17 @@ import { CargoService } from "../services/cargo.services";
 import { Roles } from "../auth/auth.roles";
 import mongoose from "mongoose";
 import multer from "multer";
+import fs from 'fs';
+import path from 'path';
+import { PictureServices } from "../services/picture.services";
 
 export default class CargoController implements Controller {
     public router = Router();
     public cargos = cargosModel.cargoModel;
-    public upload = multer({ dest: ".images/cargos/" });
-
-    public storage = multer.diskStorage({
-        destination: function (req, file, cb) {
-            cb(null, '.images/cargos/');
-        },
-        filename: function (req, file, cb) {
-            cb(null, `${Date.now()}-${file.originalname}`);
-        }
-    });
+    public pictureService = new PictureServices("cargos");
+    public upload = this.pictureService.upload;
+    public cpUpload = this.pictureService.cpUpload;
+    public storage = this.pictureService.storage;
 
     constructor() {
         this.router.get("/cargos", hasPermission([Roles.CargoView]), (req, res, next) => {
@@ -32,7 +29,7 @@ export default class CargoController implements Controller {
             this.getOneCargo(req, res).catch(next);
         });
 
-        this.router.post("/cargo", hasPermission([Roles.CargoAdd]), this.upload.single('image'), (req, res, next) => {
+        this.router.post("/cargo", hasPermission([Roles.CargoAdd]), this.cpUpload, (req, res, next) => {
             this.createCargo(req, res).catch(next);
         });
 
@@ -68,6 +65,8 @@ export default class CargoController implements Controller {
             const { filter, limit, offset } = CargoService.parseQueryParameters(req.query);
             data = await this.cargos.find(filter).limit(limit).skip(offset);
 
+            data = await this.pictureService.convertData(data);
+
             if (data.length > 0) {
                 res.send(data);
             } else {
@@ -83,6 +82,7 @@ export default class CargoController implements Controller {
             const { id } = req.params;
             const data = await this.cargos.findOne({ _id: id });
 
+
             if (data) {
                 res.send(data);
             } else {
@@ -96,7 +96,8 @@ export default class CargoController implements Controller {
     private createCargo = async (req: Request, res: Response) => {
         try {
             const body = req.body;
-            console.log(req);
+            const files: any = req.files;
+            const fileNames = files.pictures.map((file: any) => file.filename);
             const { error } = cargosModel.validate(body);
             if (error) {
                 res.status(400).send({ message: error.details[0].message });
@@ -105,7 +106,8 @@ export default class CargoController implements Controller {
             body["_id"] = new mongoose.Types.ObjectId();
             body["isDeleted"] = false;
             body["company_id"] = await getIDfromToken(req);
-            this.upload.array("pictures", 10);
+            body["pictures"] = fileNames;
+            console.log(req);
             const newCargo = new this.cargos(body);
             await newCargo.save();
             res.send(newCargo);

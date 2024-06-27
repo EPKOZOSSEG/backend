@@ -6,6 +6,7 @@ import http from 'http';
 import dotenv from 'dotenv';
 import AuthController from "./controllers/auth.controller";
 import LogController from "./controllers/log.controller";
+import PictureController from "./controllers/pictures.controller";
 import { getIDfromToken } from "./middleware/middleware";
 
 
@@ -45,6 +46,7 @@ export default class App {
         });
 
         this.app.use("/auth", new AuthController().router);
+        this.app.use("", new PictureController().router);
 
         
     }
