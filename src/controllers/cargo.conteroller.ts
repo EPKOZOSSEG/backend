@@ -5,9 +5,6 @@ import cargosModel from "../models/cargos.model";
 import { CargoService } from "../services/cargo.services";
 import { Roles } from "../auth/auth.roles";
 import mongoose from "mongoose";
-import multer from "multer";
-import fs from 'fs';
-import path from 'path';
 import { PictureServices } from "../services/picture.services";
 
 export default class CargoController implements Controller {
@@ -80,8 +77,8 @@ export default class CargoController implements Controller {
     private getOneCargo = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const data = await this.cargos.findOne({ _id: id });
-
+            let data = await this.cargos.findOne({ _id: id });
+            data = await this.pictureService.convertDataOne(data);
 
             if (data) {
                 res.send(data);
@@ -107,7 +104,6 @@ export default class CargoController implements Controller {
             body["isDeleted"] = false;
             body["company_id"] = await getIDfromToken(req);
             body["pictures"] = fileNames;
-            console.log(req);
             const newCargo = new this.cargos(body);
             await newCargo.save();
             res.send(newCargo);

@@ -8,6 +8,9 @@ import AuthController from "./controllers/auth.controller";
 import LogController from "./controllers/log.controller";
 import PictureController from "./controllers/pictures.controller";
 import { getIDfromToken } from "./middleware/middleware";
+import cargosModel from "./models/cargos.model";
+import commentModel from "./models/comment.model";
+import couponModel from "./models/coupon.model";
 
 
 
@@ -56,6 +59,11 @@ export default class App {
         try {
             console.log("Connecting to the database...")
             await mongoose.connect(this.mongoUrl, { connectTimeoutMS: 10000 });
+
+            cargosModel.cargoModel.init();
+            commentModel.commentModel.init();
+            couponModel.couponModel.init();
+            
             console.log("Connected to the database");
         } catch (error: any) {
             console.log({ message: error.message });

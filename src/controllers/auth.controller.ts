@@ -112,7 +112,7 @@ export default class AuthController implements Controller {
         if (company) {
             const result = await bcrypt.compare(body.password, company.password);
             if (result && !company.isDeleted) {
-                const token = jwt.sign({ companyName: company.companyName, email: company.email, isSubscribed: company.isSubscribed, auth: company.auth }, ACCESS_TOKEN_SECRET);
+                const token = jwt.sign({_id: company._id, companyName: company.companyName, email: company.email, isSubscribed: company.isSubscribed, auth: company.auth }, ACCESS_TOKEN_SECRET);
                 res.send({ token: token, type: 'company' });
             } else {
                 res.status(401).send({ message: "Wrong password!" });

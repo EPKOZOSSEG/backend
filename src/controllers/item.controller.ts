@@ -4,10 +4,16 @@ import { getIDfromToken, hasPermission, isLoggedIn } from "../middleware/middlew
 import { ItemService } from "../services/item.service";
 import { Roles } from "../auth/auth.roles";
 import itemModel from "../models/item.model";
+import { PictureServices } from "../services/picture.services";
+import mongoose from "mongoose";
 
 export default class ItemController implements Controller {
     public router = Router();
     public items = itemModel.itemModel;
+    public pictureService = new PictureServices("items");
+    public upload = this.pictureService.upload;
+    public cpUpload = this.pictureService.cpUpload;
+    public storage = this.pictureService.storage;
 
     constructor() {
         this.router.get("/items", hasPermission([Roles.ItemView]), (req, res, next) => {
@@ -20,7 +26,7 @@ export default class ItemController implements Controller {
             this.getOneItem(req, res).catch(next);
         });
 
-        this.router.post("/item", hasPermission([Roles.ItemAdd]), (req, res, next) => {
+        this.router.post("/item", hasPermission([Roles.ItemAdd]), this.cpUpload, (req, res, next) => {
             this.createItem(req, res).catch(next);
         });
 
@@ -39,6 +45,7 @@ export default class ItemController implements Controller {
             let data: any[] = [];
             data = await this.items.find();
 
+
             if (data.length > 0) {
                 res.send(data);
             } else {
@@ -55,6 +62,8 @@ export default class ItemController implements Controller {
             const { filter, limit, offset } = ItemService.parseQueryParameters(req.query);
             data = await this.items.find(filter).limit(limit).skip(offset);
 
+            data = await this.pictureService.convertData(data);
+
             if (data.length > 0) {
                 res.send(data);
             } else {
@@ -68,7 +77,8 @@ export default class ItemController implements Controller {
     private getOneItem = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const data = await this.items.findOne({ _id: id });
+            let data = await this.items.findOne({ _id: id });
+            data = await this.pictureService.convertDataOne(data);
 
             if (data) {
                 res.send(data);
@@ -83,12 +93,17 @@ export default class ItemController implements Controller {
     private createItem = async (req: Request, res: Response) => {
         try {
             const body = req.body;
+            const files: any = req.files;
+            const fileNames = files.pictures.map((file: any) => file.filename);
             const { error } = itemModel.validate(body);
             if (error) {
                 res.status(400).send({ message: error.details[0].message });
                 return;
             }
+            body["_id"] = new mongoose.Types.ObjectId();
+            body["isDeleted"] = false;
             body["company_id"] = await getIDfromToken(req);
+            body["pictures"] = fileNames;
             const newItem = new this.items(body);
             await newItem.save();
             res.send(newItem);
