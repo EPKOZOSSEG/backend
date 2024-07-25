@@ -1,7 +1,7 @@
 import { Request, Response, Router } from "express";
 import Controller from "../interfaces/controller_interface";
 import { getIDfromToken, hasPermission, isLoggedIn } from "../middleware/middleware";
-import { CommentService } from "../services/comment.service";
+import { CommentService } from "../services/comment.services";
 import { Roles } from "../auth/auth.roles";
 import commentModel from "../models/comment.model";
 import mongoose from "mongoose";
@@ -25,13 +25,17 @@ export default class CommentController implements Controller {
             this.createComment(req, res).catch(next);
         });
 
+        this.router.post("/comment/likes/:id/:type", hasPermission([Roles.CommentView]), (req, res, next) => {
+            this.createCommentLike(req, res).catch(next);
+        });
+
         // this.router.put("/comment/:id", hasPermission([Roles.CommentEdit]), (req, res, next) => {
         //     this.updateComment(req, res).catch(next);
         // });
 
-        // this.router.delete("/comment/:id", hasPermission([Roles.CommentDelete]), (req, res, next) => {
-        //     this.deleteComment(req, res).catch(next);
-        // });
+        this.router.delete("/comment/:id", hasPermission([Roles.CommentDelete]), (req, res, next) => {
+            this.deleteComment(req, res).catch(next);
+        });
 
     }
 
@@ -90,6 +94,7 @@ export default class CommentController implements Controller {
                 return;
             }
             body["_id"] = new mongoose.Types.ObjectId();
+            body["isDeleted"] = false;
             const newComment = new this.comments(body);
 
             const data = await this.comments.findOne({ _id: body.refernce_id });
@@ -103,23 +108,47 @@ export default class CommentController implements Controller {
         }
     };
 
-    // private deleteComment = async (req: Request, res: Response) => {
-    //     try {
-    //         const { id } = req.params;
-    //         const data = await this.comments.findOne({ _id: id });
-    //         if (data) {
-    //             const id = await getIDfromToken(req);
-    //             if (id !== data.company_id) {
-    //                 res.status(403).json({ error: "Access denied" });
-    //                 return;
-    //             }
-    //             await this.comments.updateOne({ _id: id }, { isDeleted: true });
-    //             res.send({ message: "Comment deleted successfully" });
-    //         } else {
-    //             res.status(404).send({ message: `Comment not found!` });
-    //         }
-    //     } catch (error: any) {
-    //         res.status(400).send({ message: error.message });
-    //     }
-    // };
+    private createCommentLike = async (req: Request, res: Response) => {
+        try {
+            const { id, type } = req.params;
+            const data = await this.comments.findOne({ _id: id });
+            if (data) {
+                switch(type){
+                    case "like":
+                        await this.comments.updateOne({ _id: id }, { $inc: { like: data.like+1 } });
+                        break;
+                    case "dislike":
+                        await this.comments.updateOne({ _id: id }, { $inc: { dislike: data.dislike+1 } });
+                        break;
+                    case "unlike":
+                        await this.comments.updateOne({ _id: id }, { $inc: { like: data.like-1 } });
+                        break;
+                    case "undislike":
+                        await this.comments.updateOne({ _id: id }, { $inc: { dislike: data.dislike-1 } });
+                        break;
+                }
+                res.send({ message: "Comment liked successfully" });
+            } else {
+                res.status(404).send({ message: `Comment not found!` });
+            }
+        } catch (error: any) {
+            res.status(400).send({ message: error.message });
+        }
+    }
+
+    private deleteComment = async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            const data = await this.comments.findOne({ _id: id });
+            if (data) {
+                // await this.comments.updateOne({ _id: id }, { isDeleted: true });
+                await this.comments.deleteOne({ _id: id });
+                res.send({ message: "Comment deleted successfully" });
+            } else {
+                res.status(404).send({ message: `Comment not found!` });
+            }
+        } catch (error: any) {
+            res.status(400).send({ message: error.message });
+        }
+    };
 }

@@ -1,9 +1,10 @@
 import { Request, Response, Router } from "express";
 import Controller from "../interfaces/controller_interface";
 import { getIDfromToken, hasPermission, isLoggedIn } from "../middleware/middleware";
-import { CouponService } from "../services/coupon.service";
+import { CouponService } from "../services/coupon.services";
 import { Roles } from "../auth/auth.roles";
 import couponModel from "../models/coupon.model";
+import mongoose from "mongoose";
 
 export default class CouponController implements Controller {
     public router = Router();
@@ -88,6 +89,8 @@ export default class CouponController implements Controller {
                 res.status(400).send({ message: error.details[0].message });
                 return;
             }
+            body["_id"] = new mongoose.Types.ObjectId();
+            body["isDeleted"] = false;
             body["company_id"] = await getIDfromToken(req);
             const newCoupon = new this.coupons(body);
             await newCoupon.save();

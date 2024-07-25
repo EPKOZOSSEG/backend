@@ -9,6 +9,7 @@ import { getIDfromToken, hasPermission } from "../middleware/middleware";
 import authModel from "../models/auth.model";
 import { AuthServices } from "../services/auth.services";
 import { Roles } from "../auth/auth.roles";
+import { PictureServices } from "../services/picture.services";
 
 const { ACCESS_TOKEN_SECRET = "secret" } = process.env;
 
@@ -17,6 +18,10 @@ export default class AuthController implements Controller {
     public user = userModel.userModel;
     public company = companyModel.companyModel;
     public auth = authModel.authModel;
+    public pictureService = new PictureServices("company");
+    public upload = this.pictureService.upload;
+    public cpUpload = this.pictureService.cpUpload;
+    public storage = this.pictureService.storage;
 
     constructor() {
 
@@ -66,6 +71,13 @@ export default class AuthController implements Controller {
             this.deleteAuth(req, res);
         });
 
+        this.router.put("/user-modify/:id", hasPermission([Roles.UserEdit]), (req, res) => {
+            this.modifyUser(req, res);
+        });
+
+        this.router.put("/company-modify/:id", hasPermission([Roles.UserEdit]), (req, res) => {
+            this.modifyCompany(req, res);
+        });
 
 
 
@@ -79,11 +91,11 @@ export default class AuthController implements Controller {
         const body = req.body;
         const user = await this.user.findOne({ email: body.email });
         const company = await this.company.findOne({ email: body.email });
-        if(user){
+        if (user) {
             this.loginUser(req, res);
-        }else if(company){
+        } else if (company) {
             this.loginCompany(req, res);
-        }else{
+        } else {
             res.status(404).send({ message: "Wrong username or password!!" });
         }
     };
@@ -112,7 +124,7 @@ export default class AuthController implements Controller {
         if (company) {
             const result = await bcrypt.compare(body.password, company.password);
             if (result && !company.isDeleted) {
-                const token = jwt.sign({_id: company._id, companyName: company.companyName, email: company.email, isSubscribed: company.isSubscribed, auth: company.auth }, ACCESS_TOKEN_SECRET);
+                const token = jwt.sign({ _id: company._id, companyName: company.companyData.name, email: company.email, isSubscribed: company.isSubscribed, auth: company.auth }, ACCESS_TOKEN_SECRET);
                 res.send({ token: token, type: 'company' });
             } else {
                 res.status(401).send({ message: "Wrong password!" });
@@ -137,7 +149,7 @@ export default class AuthController implements Controller {
         body.password = await bcrypt.hash(body.password, 10);
         body["_id"] = new mongoose.Types.ObjectId();
         body["isDeleted"] = false;
-        
+
         const newUser = new this.user(body);
         await newUser.save();
         res.send({ message: "OK" });
@@ -145,6 +157,8 @@ export default class AuthController implements Controller {
 
     private registerCompany = async (req: Request, res: Response) => {
         const body = req.body;
+        const files: any = req.files;
+        const fileNames = files.pictures.map((file: any) => file.filename);
         const { error } = companyModel.validate(body);
         if (error) {
             res.status(400).send({ message: error.details[0].message });
@@ -157,28 +171,29 @@ export default class AuthController implements Controller {
         }
         body.password = await bcrypt.hash(body.password, 10);
         body["_id"] = new mongoose.Types.ObjectId();
+        body["pictures"] = fileNames;
         const newCompany = new this.company(body);
         await newCompany.save();
         res.send({ message: "OK" });
     }
 
-    // private password = async (req: Request, res: Response) => {
-    //     const body = req.body;
-    //     const id = await getIDfromToken(req);
-    //     const user = await this.user.findOne({ _id: id });
-    //     if (user) {
-    //         const result = await bcrypt.compare(body.oldpassword, user.password);
-    //         if (result && !user.isDeleted) {
-    //             user.password = await bcrypt.hash(body.newpassword, 10);
-    //             await this.user.replaceOne({ _id: id }, user, { runValidators: true });
-    //             res.send({ message: "OK" });
-    //         } else {
-    //             res.status(401).send({ message: "Wrong password!" });
-    //         }
-    //     } else {
-    //         res.status(404).send({ message: "Wrong username or password!!" });
-    //     }
-    // };
+    private password = async (req: Request, res: Response) => {
+        const body = req.body;
+        const id = await getIDfromToken(req);
+        const user = await this.user.findOne({ _id: id });
+        if (user) {
+            const result = await bcrypt.compare(body.oldpassword, user.password);
+            if (result && !user.isDeleted) {
+                user.password = await bcrypt.hash(body.newpassword, 10);
+                await this.user.replaceOne({ _id: id }, user, { runValidators: true });
+                res.send({ message: "OK" });
+            } else {
+                res.status(401).send({ message: "Wrong password!" });
+            }
+        } else {
+            res.status(404).send({ message: "Wrong username or password!!" });
+        }
+    };
 
     public getAllAuths = async (req: Request, res: Response) => {
         try {
@@ -283,4 +298,37 @@ export default class AuthController implements Controller {
             res.status(404).send({ message: "Auth group not found!" });
         }
     };
+
+
+    private modifyUser = async (req: Request, res: Response) => {
+        const body = req.body;
+        const { id } = req.params;
+        const user = await this.user.findOne({ _id: id });
+        if (user) {
+            const id = await getIDfromToken(req);
+            if (id !== user._id) {
+                res.status(403).json({ error: "Access denied" });
+                return;
+            }
+            await this.user.replaceOne({ _id: id }, body, { runValidators: true });
+            res.send({ message: "OK" });
+        }
+        res.status(404).send({ message: "Auth group not added!" });
+    }
+
+    private modifyCompany = async (req: Request, res: Response) => {
+        const body = req.body;
+        const { id } = req.params;
+        const company = await this.company.findOne({ _id: id });
+        if (company) {
+            const id = await getIDfromToken(req);
+            if (id !== company._id) {
+                res.status(403).json({ error: "Access denied" });
+                return;
+            }
+            await this.company.replaceOne({ _id: id }, body, { runValidators: true });
+            res.send({ message: "OK" });
+        }
+        res.status(404).send({ message: "Auth group not added!" });
+    }
 }

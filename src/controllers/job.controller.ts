@@ -1,13 +1,19 @@
 import { Request, Response, Router } from "express";
 import Controller from "../interfaces/controller_interface";
 import { getIDfromToken, hasPermission, isLoggedIn } from "../middleware/middleware";
-import { JobService } from "../services/job.service";
+import jobsModel from "../models/job.model";
+import { JobService } from "../services/job.services";
 import { Roles } from "../auth/auth.roles";
-import jobModel from "../models/job.model";
+import mongoose from "mongoose";
+import { PictureServices } from "../services/picture.services";
 
 export default class JobController implements Controller {
     public router = Router();
-    public jobs = jobModel.jobModel;
+    public jobs = jobsModel.jobModel;
+    public pictureService = new PictureServices("jobs");
+    public upload = this.pictureService.upload;
+    public cpUpload = this.pictureService.cpUpload;
+    public storage = this.pictureService.storage;
 
     constructor() {
         this.router.get("/jobs", hasPermission([Roles.JobView]), (req, res, next) => {
@@ -20,7 +26,7 @@ export default class JobController implements Controller {
             this.getOneJob(req, res).catch(next);
         });
 
-        this.router.post("/job", hasPermission([Roles.JobAdd]), (req, res, next) => {
+        this.router.post("/job", hasPermission([Roles.JobAdd]), this.cpUpload, (req, res, next) => {
             this.createJob(req, res).catch(next);
         });
 
@@ -39,6 +45,7 @@ export default class JobController implements Controller {
             let data: any[] = [];
             data = await this.jobs.find();
 
+
             if (data.length > 0) {
                 res.send(data);
             } else {
@@ -55,6 +62,8 @@ export default class JobController implements Controller {
             const { filter, limit, offset } = JobService.parseQueryParameters(req.query);
             data = await this.jobs.find(filter).limit(limit).skip(offset);
 
+            data = await this.pictureService.convertData(data);
+
             if (data.length > 0) {
                 res.send(data);
             } else {
@@ -68,7 +77,8 @@ export default class JobController implements Controller {
     private getOneJob = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const data = await this.jobs.findOne({ _id: id });
+            let data = await this.jobs.findOne({ _id: id });
+            data = await this.pictureService.convertDataOne(data);
 
             if (data) {
                 res.send(data);
@@ -83,12 +93,17 @@ export default class JobController implements Controller {
     private createJob = async (req: Request, res: Response) => {
         try {
             const body = req.body;
-            const { error } = jobModel.validate(body);
+            const files: any = req.files;
+            const fileNames = files.pictures.map((file: any) => file.filename);
+            const { error } = jobsModel.validate(body);
             if (error) {
                 res.status(400).send({ message: error.details[0].message });
                 return;
             }
+            body["_id"] = new mongoose.Types.ObjectId();
+            body["isDeleted"] = false;
             body["company_id"] = await getIDfromToken(req);
+            body["pictures"] = fileNames;
             const newJob = new this.jobs(body);
             await newJob.save();
             res.send(newJob);
@@ -101,7 +116,7 @@ export default class JobController implements Controller {
         try {
             const { id } = req.params;
             const body = req.body;
-            const { error } = jobModel.validate(body);
+            const { error } = jobsModel.validate(body);
             if (error) {
                 res.status(400).send({ message: error.details[0].message });
                 return;

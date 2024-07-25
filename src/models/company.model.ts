@@ -8,7 +8,7 @@ const companyShema = new Schema(
             type: Schema.Types.ObjectId,
             readonly: true
         },
-        companyName: {
+        registeredName: {
             type: String,
             required: true
         },
@@ -27,6 +27,14 @@ const companyShema = new Schema(
         phone: {
             type: String,
             nullable: true
+        },
+        location: {
+            type: {street: String, city: String, county: String, zip: String, country: String},
+            required: true
+        },
+        companyData: {
+            type: {name: String, regNumber: String, taxNumber: String, empNumber: Number, description: String, webSite: String, logo: String},
+            required: true
         },
         isSubscribed: {
             type: Boolean,

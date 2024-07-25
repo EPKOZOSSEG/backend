@@ -1,15 +1,15 @@
 import { Request, Response, Router } from "express";
 import Controller from "../interfaces/controller_interface";
 import { getIDfromToken, hasPermission, isLoggedIn } from "../middleware/middleware";
-import { ItemService } from "../services/item.service";
+import itemsModel from "../models/item.model";
+import { ItemService } from "../services/item.services";
 import { Roles } from "../auth/auth.roles";
-import itemModel from "../models/item.model";
-import { PictureServices } from "../services/picture.services";
 import mongoose from "mongoose";
+import { PictureServices } from "../services/picture.services";
 
 export default class ItemController implements Controller {
     public router = Router();
-    public items = itemModel.itemModel;
+    public items = itemsModel.itemModel;
     public pictureService = new PictureServices("items");
     public upload = this.pictureService.upload;
     public cpUpload = this.pictureService.cpUpload;
@@ -95,7 +95,7 @@ export default class ItemController implements Controller {
             const body = req.body;
             const files: any = req.files;
             const fileNames = files.pictures.map((file: any) => file.filename);
-            const { error } = itemModel.validate(body);
+            const { error } = itemsModel.validate(body);
             if (error) {
                 res.status(400).send({ message: error.details[0].message });
                 return;
@@ -116,7 +116,7 @@ export default class ItemController implements Controller {
         try {
             const { id } = req.params;
             const body = req.body;
-            const { error } = itemModel.validate(body);
+            const { error } = itemsModel.validate(body);
             if (error) {
                 res.status(400).send({ message: error.details[0].message });
                 return;
