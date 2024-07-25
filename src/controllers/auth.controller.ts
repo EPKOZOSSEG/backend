@@ -80,6 +80,15 @@ export default class AuthController implements Controller {
         });
 
 
+        this.router.get("/user/:id", hasPermission([Roles.UserView]), (req, res) => {
+            this.getUserByID(req, res);
+        });
+
+
+        this.router.get("/company/:id", hasPermission([Roles.UserView]), (req, res) => {
+            this.getCompanyByID(req, res);
+        });
+
 
 
         // this.router.put("/password", hasPermission(["user"]), (req, res, next) => {
@@ -330,5 +339,28 @@ export default class AuthController implements Controller {
             res.send({ message: "OK" });
         }
         res.status(404).send({ message: "Auth group not added!" });
+    }
+
+    private getUserByID = async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const user = await this.user.findOne({ _id: id });
+        if (user) {
+            user.password = "";
+            res.send(user);
+        } else {
+            res.status(404).send({ message: "User not found!" });
+        }
+    }
+
+    private getCompanyByID = async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const company = await this.company.findOne({ _id: id });
+        if (company) {
+            company.password = "";
+            const data = await this.pictureService.convertDataOne(company);
+            res.send(data);
+        } else {
+            res.status(404).send({ message: "Company not found!" });
+        }
     }
 }
