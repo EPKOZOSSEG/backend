@@ -40,6 +40,11 @@ const itemSchema = new Schema(
             type: Array<string>(),
             default: []
         },
+        created_at: {
+            type: Date,
+            default: Date.now,
+            readonly: true
+        },
         isDeleted: {
             type: Boolean,
             default: false

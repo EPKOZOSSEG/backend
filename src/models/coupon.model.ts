@@ -12,20 +12,29 @@ const couponSchema = new Schema(
             type: Schema.Types.ObjectId,
             readonly: true
         },
-        title:{
+        title: {
             type: String,
             required: true
         },
-        description:{
+        description: {
             type: String,
             required: true
         },
-        percent:{
+        percent: {
             type: Number,
             required: true
         },
         type: {
             type: String,
+            required: true
+        },
+        created_at: {
+            type: Date,
+            default: Date.now,
+            readonly: true
+        },
+        usable_to: {
+            type: Date,
             required: true
         },
         isDeleted: {
@@ -49,4 +58,4 @@ const validate = (message: object): Joi.ValidationResult => {
 const couponModel = model("coupon", couponSchema, "Coupon");
 
 
-export default {couponModel, validate};
+export default { couponModel, validate };

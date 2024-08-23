@@ -10,6 +10,10 @@ import authModel from "../models/auth.model";
 import { AuthServices } from "../services/auth.services";
 import { Roles } from "../auth/auth.roles";
 import { PictureServices } from "../services/picture.services";
+import cargosModel from "../models/cargos.model";
+import itemModel from "../models/item.model";
+import couponModel from "../models/coupon.model";
+import jobModel from "../models/job.model";
 
 const { ACCESS_TOKEN_SECRET = "secret" } = process.env;
 
@@ -22,6 +26,8 @@ export default class AuthController implements Controller {
     public upload = this.pictureService.upload;
     public cpUpload = this.pictureService.cpUpload;
     public storage = this.pictureService.storage;
+
+
 
     constructor() {
 
@@ -89,6 +95,10 @@ export default class AuthController implements Controller {
             this.getCompanyByID(req, res);
         });
 
+        this.router.get("/company-data/:id", hasPermission([Roles.CargoView, Roles.CouponView, Roles.JobView, Roles.ItemView]), (req, res) => {
+            this.getCompanyDataByID(req, res);
+        });
+
 
 
         // this.router.put("/password", hasPermission(["user"]), (req, res, next) => {
@@ -133,7 +143,7 @@ export default class AuthController implements Controller {
         if (company) {
             const result = await bcrypt.compare(body.password, company.password);
             if (result && !company.isDeleted) {
-                const token = jwt.sign({ _id: company._id, companyName: company.companyData.name, email: company.email, isSubscribed: company.isSubscribed, auth: company.auth }, ACCESS_TOKEN_SECRET);
+                const token = jwt.sign({ _id: company._id, companyName: company.companyData.companyName, email: company.email, isSubscribed: company.isSubscribed, auth: company.auth }, ACCESS_TOKEN_SECRET);
                 res.send({ token: token, type: 'company' });
             } else {
                 res.status(401).send({ message: "Wrong password!" });
@@ -167,7 +177,7 @@ export default class AuthController implements Controller {
     private registerCompany = async (req: Request, res: Response) => {
         const body = req.body;
         const files: any = req.files;
-        const fileNames = files.pictures.map((file: any) => file.filename);
+        // const fileNames = files.pictures.map((file: any) => file.filename);
         const { error } = companyModel.validate(body);
         if (error) {
             res.status(400).send({ message: error.details[0].message });
@@ -180,7 +190,33 @@ export default class AuthController implements Controller {
         }
         body.password = await bcrypt.hash(body.password, 10);
         body["_id"] = new mongoose.Types.ObjectId();
-        body["pictures"] = fileNames;
+        body["auth"] = [
+            Roles.CargoView,
+            Roles.CargoAdd,
+            Roles.CargoEdit,
+            Roles.CargoDelete,
+
+            Roles.ItemView,
+            Roles.ItemAdd,
+            Roles.ItemEdit,
+            Roles.ItemDelete,
+
+            Roles.JobView,
+            Roles.JobAdd,
+            Roles.JobEdit,
+            Roles.JobDelete,
+
+            Roles.CouponView,
+            Roles.CouponAdd,
+            Roles.CouponEdit,
+            Roles.CouponDelete,
+
+            Roles.CommentView,
+            Roles.CommentAdd,
+            Roles.CommentEdit,
+            Roles.CommentDelete,
+        ]
+        // body["pictures"] = fileNames;
         const newCompany = new this.company(body);
         await newCompany.save();
         res.send({ message: "OK" });
@@ -361,6 +397,89 @@ export default class AuthController implements Controller {
             res.send(data);
         } else {
             res.status(404).send({ message: "Company not found!" });
+        }
+    }
+
+    private cargo = cargosModel.cargoModel;
+    private item = itemModel.itemModel;
+    private coupon = couponModel.couponModel;
+    private job = jobModel.jobModel;
+
+    private getCompanyDataByID = async (req: Request, res: Response) => {
+
+        const { id } = req.params;
+        const cargos = await this.cargo.find({ company_id: id, isDeleted: false });
+        const items = await this.item.find({ company_id: id, isDeleted: false });
+        const coupons = await this.coupon.find({ company_id: id, isDeleted: false });
+        const jobs = await this.job.find({ company_id: id, isDeleted: false });
+
+        try {
+            const tmpcargoQ = cargos.map(cargo => {
+                const month = new Date(cargo.created_at).getMonth() + 1;
+                if (month >= 1 && month <= 3) return 'Q1';
+                if (month >= 4 && month <= 6) return 'Q2';
+                if (month >= 7 && month <= 9) return 'Q3';
+                return 'Q4';
+            });
+
+            const tmpCouponQ = items.map(coupon => {
+                const month = new Date(coupon.created_at).getMonth() + 1;
+                if (month >= 1 && month <= 3) return 'Q1';
+                if (month >= 4 && month <= 6) return 'Q2';
+                if (month >= 7 && month <= 9) return 'Q3';
+                return 'Q4';
+            });
+            
+            const tmpitemQ = items.map(item => {
+                const month = new Date(item.created_at).getMonth() + 1;
+                if (month >= 1 && month <= 3) return 'Q1';
+                if (month >= 4 && month <= 6) return 'Q2';
+                if (month >= 7 && month <= 9) return 'Q3';
+                return 'Q4';
+            });
+
+            const tmpJobQ = items.map(job => {
+                const month = new Date(job.created_at).getMonth() + 1;
+                if (month >= 1 && month <= 3) return 'Q1';
+                if (month >= 4 && month <= 6) return 'Q2';
+                if (month >= 7 && month <= 9) return 'Q3';
+                return 'Q4';
+            });
+
+            const cargoQ = tmpcargoQ.reduce((acc: any, quarter: any) => {
+                acc[quarter] = (acc[quarter] || 0) + 1;
+                return acc;
+            }, {});
+
+            const itemQ = tmpitemQ.reduce((acc: any, quarter: any) => {
+                acc[quarter] = (acc[quarter] || 0) + 1;
+                return acc;
+            }, {});
+
+            const couponQ = tmpCouponQ.reduce((acc: any, quarter: any) => {
+                acc[quarter] = (acc[quarter] || 0) + 1;
+                return acc;
+            }, {});
+
+            const jobQ = tmpJobQ.reduce((acc: any, quarter: any) => {
+                acc[quarter] = (acc[quarter] || 0) + 1;
+                return acc;
+            }, {});
+
+            const data = {
+                cargos: cargos.length,
+                items: items.length,
+                coupons: coupons.length,
+                jobs: jobs.length,
+                cargoQ,
+                itemQ,
+                couponQ,
+                jobQ
+            }
+
+            res.send(data);
+        } catch (error) {
+
         }
     }
 }

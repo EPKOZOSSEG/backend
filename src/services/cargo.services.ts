@@ -15,6 +15,7 @@ export class CargoService {
         if (currency) filter.currency = currency;
         if (payment) filter.payment = payment;
         if (location) filter.location = location;
+        filter.isDeleted = false;
 
 
         return { filter, limit, offset };

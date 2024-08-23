@@ -8,7 +8,7 @@ const companyShema = new Schema(
             type: Schema.Types.ObjectId,
             readonly: true
         },
-        registeredName: {
+        name: {
             type: String,
             required: true
         },
@@ -33,7 +33,7 @@ const companyShema = new Schema(
             required: true
         },
         companyData: {
-            type: {name: String, regNumber: String, taxNumber: String, empNumber: Number, description: String, webSite: String, logo: String},
+            type: {companyName: String, regNumber: String, taxNumber: String, empNumber: Number, description: String, webSite: String, logo: String},
             required: true
         },
         isSubscribed: {
@@ -50,10 +50,27 @@ const companyShema = new Schema(
 
 const validate = (message: object): Joi.ValidationResult => {
     const schema = Joi.object().keys({
-        companyName: Joi.string().required(),
-        email: Joi.string().required(),
+        name: Joi.string().required(),
+        email: Joi.string().email().required(),
         password: Joi.string().required(),
-        phone: Joi.string().optional()
+        phone: Joi.string().allow(null),
+        location: Joi.object().keys({
+            street: Joi.string().required(),
+            city: Joi.string().required(),
+            county: Joi.string().required(),
+            zip: Joi.string().required(),
+            country: Joi.string().required()
+        }).required(),
+        companyData: Joi.object().keys({
+            companyName: Joi.string().required(),
+            regNumber: Joi.string().required(),
+            taxNumber: Joi.string().required(),
+            empNumber: Joi.number().required(),
+            description: Joi.string().required(),
+            webSite: Joi.string().required(),
+        }).required(),
+        isSubscribed: Joi.boolean().default(false),
+        isDeleted: Joi.boolean().default(false)
     });
     return schema.validate(message);
 };

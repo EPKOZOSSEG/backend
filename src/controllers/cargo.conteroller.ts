@@ -30,7 +30,7 @@ export default class CargoController implements Controller {
             this.createCargo(req, res).catch(next);
         });
 
-        this.router.put("/cargo/:id", hasPermission([Roles.CargoEdit]), (req, res, next) => {
+        this.router.put("/cargo/:id", hasPermission([Roles.CargoEdit]), this.cpUpload, (req, res, next) => {
             this.updateCargo(req, res).catch(next);
         });
 
@@ -116,7 +116,10 @@ export default class CargoController implements Controller {
         try {
             const { id } = req.params;
             const body = req.body;
+            const files: any = req.files;
+            const fileNames = files.pictures.map((file: any) => file.filename);
             const { error } = cargosModel.validate(body);
+
             if (error) {
                 res.status(400).send({ message: error.details[0].message });
                 return;
@@ -126,11 +129,12 @@ export default class CargoController implements Controller {
 
             if (data) {
                 const id = await getIDfromToken(req);
-                if (id !== data.company_id) {
+                if (id !== data.company_id?.toString()) {
                     res.status(403).json({ error: "Access denied" });
                     return;
                 }
-                await this.cargos.updateOne({ _id: id }, body);
+                body["pictures"] = fileNames;
+                await this.cargos.updateOne({ _id: data._id }, body);
                 res.send({ message: "Cargo updated successfully" });
             } else {
                 res.status(404).send({ message: `Cargo not found!` });
@@ -146,11 +150,11 @@ export default class CargoController implements Controller {
             const data = await this.cargos.findOne({ _id: id });
             if (data) {
                 const id = await getIDfromToken(req);
-                if (id !== data.company_id) {
+                if (id !== data.company_id?.toString()) {
                     res.status(403).json({ error: "Access denied" });
                     return;
                 }
-                await this.cargos.updateOne({ _id: id }, { isDeleted: true });
+                await this.cargos.updateOne({ _id: data._id }, { isDeleted: true });
                 res.send({ message: "Cargo deleted successfully" });
             } else {
                 res.status(404).send({ message: `Cargo not found!` });
