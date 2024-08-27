@@ -50,7 +50,8 @@ const validate = (message: object): Joi.ValidationResult => {
         title: Joi.string().required(),
         description: Joi.string().required(),
         percent: Joi.number().required(),
-        type: Joi.string().required()
+        type: Joi.string().required(),
+        usable_to: Joi.date().required()
     });
     return schema.validate(message);
 };

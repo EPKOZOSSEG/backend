@@ -5,10 +5,17 @@ import { CouponService } from "../services/coupon.services";
 import { Roles } from "../auth/auth.roles";
 import couponModel from "../models/coupon.model";
 import mongoose from "mongoose";
+import { AuthServices } from "../services/auth.services";
+import { PictureServices } from "../services/picture.services";
 
 export default class CouponController implements Controller {
     public router = Router();
     public coupons = couponModel.couponModel;
+    public pictureService = new PictureServices("coupon");
+    public upload = this.pictureService.upload;
+    public cpUpload = this.pictureService.cpUpload;
+    public storage = this.pictureService.storage;
+    public authService = new AuthServices();
 
     constructor() {
         this.router.get("/coupons", hasPermission([Roles.CouponView]), (req, res, next) => {
@@ -21,11 +28,11 @@ export default class CouponController implements Controller {
             this.getOneCoupon(req, res).catch(next);
         });
 
-        this.router.post("/coupon", hasPermission([Roles.CouponAdd]), (req, res, next) => {
+        this.router.post("/coupon", hasPermission([Roles.CouponAdd]), this.cpUpload, (req, res, next) => {
             this.createCoupon(req, res).catch(next);
         });
 
-        this.router.put("/coupon/:id", hasPermission([Roles.CouponEdit]), (req, res, next) => {
+        this.router.put("/coupon/:id", hasPermission([Roles.CouponEdit]), this.cpUpload, (req, res, next) => {
             this.updateCoupon(req, res).catch(next);
         });
 
@@ -54,7 +61,9 @@ export default class CouponController implements Controller {
         try {
             let data: any[] = [];
             const { filter, limit, offset } = CouponService.parseQueryParameters(req.query);
-            data = await this.coupons.find(filter).limit(limit).skip(offset);
+            
+            const companyFilter = await this.authService.getCompanyIdByName(req.query.companyName as string);
+            data = await this.coupons.find({...companyFilter, ...filter}).limit(limit).skip(offset);
 
             if (data.length > 0) {
                 res.send(data);
@@ -112,13 +121,14 @@ export default class CouponController implements Controller {
 
             const data = await this.coupons.findOne({ _id: id });
 
+
             if (data) {
                 const id = await getIDfromToken(req);
-                if (id !== data.company_id) {
+                if (id !== data.company_id?.toString()) {
                     res.status(403).json({ error: "Access denied" });
                     return;
                 }
-                await this.coupons.updateOne({ _id: id }, body);
+                await this.coupons.updateOne({ _id: data._id }, body);
                 res.send({ message: "Coupon updated successfully" });
             } else {
                 res.status(404).send({ message: `Coupon not found!` });

@@ -6,6 +6,7 @@ import { JobService } from "../services/job.services";
 import { Roles } from "../auth/auth.roles";
 import mongoose from "mongoose";
 import { PictureServices } from "../services/picture.services";
+import { AuthServices } from "../services/auth.services";
 
 export default class JobController implements Controller {
     public router = Router();
@@ -14,6 +15,7 @@ export default class JobController implements Controller {
     public upload = this.pictureService.upload;
     public cpUpload = this.pictureService.cpUpload;
     public storage = this.pictureService.storage;
+    public authService = new AuthServices();
 
     constructor() {
         this.router.get("/jobs", hasPermission([Roles.JobView]), (req, res, next) => {
@@ -60,7 +62,8 @@ export default class JobController implements Controller {
         try {
             let data: any[] = [];
             const { filter, limit, offset } = JobService.parseQueryParameters(req.query);
-            data = await this.jobs.find(filter).limit(limit).skip(offset);
+            const companyFilter = await this.authService.getCompanyIdByName(req.query.companyName as string);
+            data = await this.jobs.find({...companyFilter, ...filter}).limit(limit).skip(offset);
 
             data = await this.pictureService.convertData(data);
 
@@ -126,11 +129,11 @@ export default class JobController implements Controller {
 
             if (data) {
                 const id = await getIDfromToken(req);
-                if (id !== data.company_id) {
+                if (id !== data.company_id?.toString()) {
                     res.status(403).json({ error: "Access denied" });
                     return;
                 }
-                await this.jobs.updateOne({ _id: id }, body);
+                await this.jobs.updateOne({ _id: data._id }, body);
                 res.send({ message: "Job updated successfully" });
             } else {
                 res.status(404).send({ message: `Job not found!` });

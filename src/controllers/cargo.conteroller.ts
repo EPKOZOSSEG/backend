@@ -6,11 +6,13 @@ import { CargoService } from "../services/cargo.services";
 import { Roles } from "../auth/auth.roles";
 import mongoose from "mongoose";
 import { PictureServices } from "../services/picture.services";
+import { AuthServices } from "../services/auth.services";
 
 export default class CargoController implements Controller {
     public router = Router();
     public cargos = cargosModel.cargoModel;
     public pictureService = new PictureServices("cargos");
+    public authService = new AuthServices();
     public upload = this.pictureService.upload;
     public cpUpload = this.pictureService.cpUpload;
     public storage = this.pictureService.storage;
@@ -22,6 +24,7 @@ export default class CargoController implements Controller {
         this.router.get("/cargo", hasPermission([Roles.CargoView]), (req, res, next) => {
             this.getCargosWithPag(req, res).catch(next);
         });
+
         this.router.get("/cargo/:id", hasPermission([Roles.CargoView]), (req, res, next) => {
             this.getOneCargo(req, res).catch(next);
         });
@@ -60,8 +63,9 @@ export default class CargoController implements Controller {
         try {
             let data: any[] = [];
             const { filter, limit, offset } = CargoService.parseQueryParameters(req.query);
-            data = await this.cargos.find(filter).limit(limit).skip(offset);
-
+            const companyFilter = await this.authService.getCompanyIdByName(req.query.companyName as string);
+            data = await this.cargos.find({...companyFilter, ...filter}).limit(limit).skip(offset);
+            
             data = await this.pictureService.convertData(data);
 
             if (data.length > 0) {

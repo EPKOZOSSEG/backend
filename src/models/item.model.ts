@@ -28,10 +28,6 @@ const itemSchema = new Schema(
             type: String,
             required: true
         },
-        payment: {
-            type: String,
-            required: true
-        },
         location: {
             type: String,
             required: true
@@ -59,7 +55,6 @@ const validate = (message: object): Joi.ValidationResult => {
         description: Joi.string().required(),
         price: Joi.number().required(),
         currency: Joi.string().required(),
-        payment: Joi.string().required(),
         location: Joi.string().required(),
         pictures: Joi.array().items(Joi.string()).optional()
     });
