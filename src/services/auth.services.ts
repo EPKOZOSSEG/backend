@@ -15,9 +15,10 @@ export class AuthServices {
     }
 
     public getCompanyIdByName = async (companyName: string) => {
+        if(!companyName) return {};
         const c = companyModel.companyModel;
         const company = await c.find({ "companyData.companyName": companyName });
-        if(company.length == 0) return {};
+        if(company.length == 0) return {"company_id": "null"};
         return { "company_id": company[0]._id };
     }
 }

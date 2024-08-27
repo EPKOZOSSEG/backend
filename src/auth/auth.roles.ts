@@ -34,6 +34,7 @@ export enum Roles {
     CouponEdit = "coupon-edit",
     CouponDelete = "coupon-delete",
     CouponUse = "coupon-use",
+    CouponCollect = "coupon-collect",
 
     CommentView = "comment-view",
     CommentAdd = "comment-add",

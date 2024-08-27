@@ -33,6 +33,10 @@ const couponSchema = new Schema(
             default: Date.now,
             readonly: true
         },
+        collectedBy: {
+            type: Array,
+            default: []
+        },
         usable_to: {
             type: Date,
             required: true

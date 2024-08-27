@@ -24,14 +24,19 @@ export default class CouponController implements Controller {
         this.router.get("/coupon", hasPermission([Roles.CouponView]), (req, res, next) => {
             this.getCouponsWithPag(req, res).catch(next);
         });
+        this.router.get("/coupon/collected/:is", hasPermission([Roles.CouponView]), (req, res, next) => {
+            this.getCollectedCouponsWithPag(req, res).catch(next);
+        });
         this.router.get("/coupon/:id", hasPermission([Roles.CouponView]), (req, res, next) => {
             this.getOneCoupon(req, res).catch(next);
         });
-
         this.router.post("/coupon", hasPermission([Roles.CouponAdd]), this.cpUpload, (req, res, next) => {
             this.createCoupon(req, res).catch(next);
         });
 
+        this.router.put("/coupon/collect/:id", this.cpUpload, (req, res, next) => {
+            this.collectCoupon(req, res).catch(next);
+        });
         this.router.put("/coupon/:id", hasPermission([Roles.CouponEdit]), this.cpUpload, (req, res, next) => {
             this.updateCoupon(req, res).catch(next);
         });
@@ -61,9 +66,30 @@ export default class CouponController implements Controller {
         try {
             let data: any[] = [];
             const { filter, limit, offset } = CouponService.parseQueryParameters(req.query);
-            
+
             const companyFilter = await this.authService.getCompanyIdByName(req.query.companyName as string);
-            data = await this.coupons.find({...companyFilter, ...filter}).limit(limit).skip(offset);
+            data = await this.coupons.find({ ...companyFilter, ...filter }).limit(limit).skip(offset);
+
+            if (data.length > 0) {
+                res.send(data);
+            } else {
+                res.status(404).send({ message: `Coupons not found!` });
+            }
+        } catch (error: any) {
+            res.status(400).send({ message: error.message });
+        }
+    };
+
+    private getCollectedCouponsWithPag = async (req: Request, res: Response) => {
+        try {
+            let data: any[] = [];
+            const { filter, limit, offset } = CouponService.parseQueryParameters(req.query);
+            const { is } = req.params;
+            const id = await getIDfromToken(req);
+            if(is === "true") filter.collectedBy = { $in: [id] }
+            else filter.collectedBy = { $nin: [id] }
+            const companyFilter = await this.authService.getCompanyIdByName(req.query.companyName as string);
+            data = await this.coupons.find({ ...companyFilter, ...filter }).limit(limit).skip(offset);
 
             if (data.length > 0) {
                 res.send(data);
@@ -137,6 +163,32 @@ export default class CouponController implements Controller {
             res.status(400).send({ message: error.message });
         }
     };
+
+    private collectCoupon = async (req: Request, res: Response) => {
+        try {
+
+            const { id } = req.params;
+
+            const data = await this.coupons.findOne({ _id: id });
+
+            if (data) {
+                const Uid = await getIDfromToken(req);
+                if(data["collectedBy"].includes(Uid)){
+                    data["collectedBy"] = data["collectedBy"].filter((id: string) => id !== Uid);
+                }else{
+                    data["collectedBy"].push(Uid);
+                }
+                await this.coupons.updateOne({ _id: data._id }, data);
+                res.send({ message: "Coupon collected successfully" });
+            } else {
+                res.status(404).send({ message: `Coupon not found!` });
+            }
+
+        } catch (error: any) {
+            res.status(400).send({ message: error.message });
+
+        }
+    }
 
     private deleteCoupon = async (req: Request, res: Response) => {
         try {

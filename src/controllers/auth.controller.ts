@@ -126,7 +126,7 @@ export default class AuthController implements Controller {
         if (user) {
             const result = await bcrypt.compare(body.password, user.password);
             if (result && !user.isDeleted) {
-                const token = jwt.sign({ firstName: user.firstName, lastName: user.lastName, email: user.email, isSubscribed: user.isSubscribed, auth: user.auth }, ACCESS_TOKEN_SECRET);
+                const token = jwt.sign({  _id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, isSubscribed: user.isSubscribed, auth: user.auth }, ACCESS_TOKEN_SECRET);
                 res.send({ token: token, type: 'user' });
             } else {
                 res.status(401).send({ message: "Wrong password!" });
@@ -168,6 +168,22 @@ export default class AuthController implements Controller {
         body.password = await bcrypt.hash(body.password, 10);
         body["_id"] = new mongoose.Types.ObjectId();
         body["isDeleted"] = false;
+        body["auth"] = [
+            Roles.CargoView,
+
+            Roles.ItemView,
+
+            Roles.JobView,
+
+            Roles.CouponView,
+            Roles.CouponCollect,
+            Roles.CouponUse,
+
+            Roles.CommentView,
+            Roles.CommentAdd,
+            Roles.CommentEdit,
+            Roles.CommentDelete,
+        ]
 
         const newUser = new this.user(body);
         await newUser.save();
