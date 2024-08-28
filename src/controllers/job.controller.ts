@@ -7,11 +7,13 @@ import { Roles } from "../auth/auth.roles";
 import mongoose from "mongoose";
 import { PictureServices } from "../services/picture.services";
 import { AuthServices } from "../services/auth.services";
+import { CouponService } from "../services/coupon.services";
 
 export default class JobController implements Controller {
     public router = Router();
     public jobs = jobsModel.jobModel;
     public pictureService = new PictureServices("jobs");
+    public couponService = new CouponService();
     public upload = this.pictureService.upload;
     public cpUpload = this.pictureService.cpUpload;
     public storage = this.pictureService.storage;
@@ -61,12 +63,15 @@ export default class JobController implements Controller {
     private getJobsWithPag = async (req: Request, res: Response) => {
         try {
             let data: any[] = [];
+            const id = await getIDfromToken(req);
             const { filter, limit, offset } = JobService.parseQueryParameters(req.query);
             const companyFilter = await this.authService.getCompanyIdByName(req.query.companyName as string);
             data = await this.jobs.find({...companyFilter, ...filter}).limit(limit).skip(offset);
 
             data = await this.pictureService.convertData(data);
-
+            if(filter.coupons){
+                data = await this.couponService.insertCoupons(id, data.length, data);
+            }
             if (data.length > 0) {
                 res.send(data);
             } else {

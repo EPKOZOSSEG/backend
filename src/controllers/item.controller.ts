@@ -7,11 +7,13 @@ import { Roles } from "../auth/auth.roles";
 import mongoose from "mongoose";
 import { PictureServices } from "../services/picture.services";
 import { AuthServices } from "../services/auth.services";
+import { CouponService } from "../services/coupon.services";
 
 export default class ItemController implements Controller {
     public router = Router();
     public items = itemsModel.itemModel;
     public pictureService = new PictureServices("items");
+    public couponService = new CouponService();
     public upload = this.pictureService.upload;
     public cpUpload = this.pictureService.cpUpload;
     public storage = this.pictureService.storage;
@@ -62,12 +64,15 @@ export default class ItemController implements Controller {
         try {
             let data: any[] = [];
             const { filter, limit, offset } = ItemService.parseQueryParameters(req.query);
+            const id = await getIDfromToken(req);
             
             const companyFilter = await this.authService.getCompanyIdByName(req.query.companyName as string);
             data = await this.items.find({...companyFilter, ...filter}).limit(limit).skip(offset);
 
             data = await this.pictureService.convertData(data);
-
+            if(filter.coupons){
+                data = await this.couponService.insertCoupons(id, data.length, data);
+            }
             if (data.length > 0) {
                 res.send(data);
             } else {

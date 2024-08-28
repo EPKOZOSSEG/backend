@@ -5,6 +5,7 @@ export class CargoService {
         const currency = query.currency as string;
         const payment = query.payment as string;
         const location = query.location as string;
+        const coupons = query.coupons as string;
 
         const limit = parseInt(query.limit as string);
         const offset = parseInt(query.offset as string);
@@ -15,6 +16,7 @@ export class CargoService {
         if (currency) filter.currency = currency;
         if (payment) filter.payment = payment;
         if (location) filter.location = location;
+        if (coupons) filter.coupons = coupons;
         filter.isDeleted = false;
 
 

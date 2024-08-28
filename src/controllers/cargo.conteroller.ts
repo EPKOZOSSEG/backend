@@ -7,11 +7,13 @@ import { Roles } from "../auth/auth.roles";
 import mongoose from "mongoose";
 import { PictureServices } from "../services/picture.services";
 import { AuthServices } from "../services/auth.services";
+import { CouponService } from "../services/coupon.services";
 
 export default class CargoController implements Controller {
     public router = Router();
     public cargos = cargosModel.cargoModel;
     public pictureService = new PictureServices("cargos");
+    public couponService = new CouponService();
     public authService = new AuthServices();
     public upload = this.pictureService.upload;
     public cpUpload = this.pictureService.cpUpload;
@@ -62,11 +64,14 @@ export default class CargoController implements Controller {
     private getCargosWithPag = async (req: Request, res: Response) => {
         try {
             let data: any[] = [];
+            const id = await getIDfromToken(req);
             const { filter, limit, offset } = CargoService.parseQueryParameters(req.query);
             const companyFilter = await this.authService.getCompanyIdByName(req.query.companyName as string);
             data = await this.cargos.find({...companyFilter, ...filter}).limit(limit).skip(offset);
-            
             data = await this.pictureService.convertData(data);
+            if(filter.coupons){
+                data = await this.couponService.insertCoupons(id, data.length, data);
+            }
 
             if (data.length > 0) {
                 res.send(data);
