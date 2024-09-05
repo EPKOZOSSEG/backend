@@ -5,7 +5,8 @@
     "start": "node ./src/server.js",
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "dev": "nodemon"
+    "dev": "nodemon",
+    "build:start": "npm run build && npm start"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
