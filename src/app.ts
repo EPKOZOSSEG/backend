@@ -19,7 +19,7 @@ export default class App {
     public app: express.Application;
 
     public port: any | number = process.env.PORT || 8000;
-    public mongoUrl = process.env.MONGO_URL || "mongodb://localhost:27017/epkozosseg" || "mongodb+srv://admin:admin@bluecard.gssoqxv.mongodb.net";
+    public mongoUrl = process.env.MONGO_URL || "mongodb+srv://admin:admin@epkozosseg.ezb3n.mongodb.net/?retryWrites=true&w=majority&appName=Epkozosseg";
 
     constructor(controllers: IController[]) {
         this.app = express();
